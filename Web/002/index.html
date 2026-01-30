@@ -44,6 +44,7 @@
         height: 100%;
         z-index: 1;
         position: relative;
+        background: transparent;
       }
 
       /* 新增：覆盖在 canvas 上的文字样式 */
@@ -64,6 +65,9 @@
         -moz-osx-font-smoothing: grayscale;
         white-space: nowrap;
         z-index: 2;
+        padding: 6px 12px;
+        background: rgba(0,0,0,0.18);
+        border-radius: 6px;
       }
 
       /* 小屏幕适配 */
@@ -84,80 +88,78 @@
       <div class="caption">落俗不可避免 浪漫至死不渝</div>
 
       <script>
-        var b = document.body;
-        var c = document.getElementsByTagName("canvas")[0];
-        var a = c.getContext("2d");
-        document.body.clientWidth;
-      </script>
-      <script>
-        with ((m = Math)) (C = cos), (S = sin), (P = pow), (R = random);
-        c.width = c.height = f = 600;
-        h = -250;
-        function p(a, b, c) {
-          if (c > 60)
-            return [
-              S(a * 7) * (13 + 5 / (0.2 + P(b * 4, 4))) - S(b) * 50,
-              b * f + 50,
-              625 + C(a * 7) * (13 + 5 / (0.2 + P(b * 4, 4))) + b * 400,
-              a * 1 - b / 2,
-              a,
-            ];
-          A = a * 2 - 1;
-          B = b * 2 - 1;
-          if (A * A + B * B < 1) {
-            if (c > 37) {
-              n = (j = c & 1) ? 6 : 4;
-              o = 0.5 / (a + 0.01) + C(b * 125) * 3 - a * 300;
-              w = b * h;
-              return [
-                o * C(n) + w * S(n) + j * 610 - 390,
-                o * S(n) - w * C(n) + 550 - j * 350,
-                1180 + C(B + A) * 99 - j * 300,
-                0.4 -
-                  a * 0.1 +
-                  P(1 - B * B, -h * 6) * 0.15 -
-                  a * b * 0.4 +
-                  C(a + b) / 5 +
-                  P(C((o * (a + 1) + (B > 0 ? w : -w)) / 25), 30) *
-                    0.1 *
-                    (1 - B * B),
-                o / 1e3 + 0.7 - o * w * 3e-6,
-              ];
-            }
-            if (c > 32) {
-              c = c * 1.16 - 0.15;
-              o = a * 45 - 20;
-              w = b * b * h;
-              z = o * S(c) + w * C(c) + 620;
-              return [
-                o * C(c) - w * S(c),
-                28 + C(B * 0.5) * 99 - b * b * b * 60 - z / 2 - h,
-                z,
-                (b * b * 0.3 + P(1 - A * A, 7) * 0.15 + 0.3) * b,
-                b * 0.7,
-              ];
-            }
-            o = A * (2 - b) * (80 - c * 2);
-            w =
-              99 -
-              C(A) * 120 -
-              C(b) * (-h - c * 4.9) +
-              C(P(1 - b, 7)) * 50 +
-              c * 2;
-            z = o * S(c) + w * C(c) + 700;
-            return [
-              o * C(c) - w * S(c),
-              B * 99 - C(P(b, 7)) * 50 - c / 3 - z / 1.35 + 450,
-              z,
-              (1 - b / 1.2) * 0.9 + a * 0.1,
-              P(1 - b, 20) / 4 + 0.05,
-            ];
+        // 简化并修复的绘图脚本：渲染浮动彩色粒子，替代被截断的原始脚本
+        (function () {
+          var canvas = document.getElementById('c');
+          var ctx = canvas.getContext('2d');
+          var DPR = window.devicePixelRatio || 1;
+
+          function resize() {
+            var rect = canvas.getBoundingClientRect();
+            canvas.width = Math.max(300, Math.floor(rect.width * DPR));
+            canvas.height = Math.max(300, Math.floor(rect.height * DPR));
+            ctx.scale(DPR, DPR);
           }
-        }
-        setInterval(
-          'for(i=0;i<1e4;i++)if(s=p(R(),R(),i%46/.74)){z=s[2];x=~~(s[0]*f/z-h);y=~~(s[1]*f/z-h);if(!m[q=y*f+x]|m[q]>z)m[q]=z,a.fillStyle="rgb("+~(s[3]*h)+","+~(s[4]*h)+","+~(s[3]*s[3]*-80)+")",a.fillR[...] '
-          0
-        );
+
+          window.addEventListener('resize', function () {
+            // clear transform and re-resize
+            ctx.setTransform(1,0,0,1,0,0);
+            resize();
+          });
+
+          resize();
+
+          // 粒子数据
+          var particles = [];
+          var N = 120;
+
+          function rand(min, max) { return Math.random() * (max - min) + min; }
+
+          for (var i = 0; i < N; i++) {
+            particles.push({
+              x: rand(0, 600),
+              y: rand(0, 600),
+              r: rand(2, 18),
+              vx: rand(-0.3, 0.3),
+              vy: rand(-0.2, 0.2),
+              hue: Math.floor(rand(0, 360)),
+              alpha: rand(0.3, 0.9)
+            });
+          }
+
+          function draw() {
+            // clear with soft pink background
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // draw blurred translucent background
+            ctx.fillStyle = 'rgba(255,192,203,0.08)';
+            ctx.fillRect(0,0,canvas.width/DPR,canvas.height/DPR);
+
+            for (var i = 0; i < particles.length; i++) {
+              var p = particles[i];
+              p.x += p.vx;
+              p.y += p.vy + 0.05 * Math.sin((Date.now() + i * 1000) / 1500);
+
+              // wrap
+              if (p.x < -50) p.x = canvas.width/DPR + 50;
+              if (p.x > canvas.width/DPR + 50) p.x = -50;
+              if (p.y < -50) p.y = canvas.height/DPR + 50;
+              if (p.y > canvas.height/DPR + 50) p.y = -50;
+
+              var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r*2);
+              g.addColorStop(0, 'hsla('+p.hue+',90%,'+ (50 + p.r) +'%, '+p.alpha+')');
+              g.addColorStop(1, 'hsla('+((p.hue+60)%360)+',80%,60%,0);');
+
+              ctx.beginPath();
+              ctx.fillStyle = g;
+              ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+              ctx.fill();
+            }
+
+            requestAnimationFrame(draw);
+          }
+
+          draw();
+        })();
       </script>
     </div>
   </body>
